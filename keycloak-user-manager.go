@@ -106,7 +106,27 @@ func (um *KeycloakUserManager) ForceUserName(ctx context.Context, name string) (
 	return name, false, nil
 }
 
-func (um *KeycloakUserManager) ListUsers(ctx context.Context, page interface{}, filter interface{}) ([]*models.User, interface{}, error) {
+func (um *KeycloakUserManager) ListUsers(ctx context.Context, filter string, attrs []string) (*[]models.User, error) {
+	err := um.connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	params := gocloak.GetUsersParams{}
+	all, err := um.client.GetUsers(ctx, um.jwt.AccessToken, um.realm, params)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []models.User
+	for _, usr := range all {
+		users = append(users, *UserToCloudy(usr))
+	}
+
+	return &users, nil
+}
+
+func (um *KeycloakUserManager) listUsers(ctx context.Context, page interface{}, filter interface{}) ([]*models.User, interface{}, error) {
 	err := um.connect(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -115,7 +135,7 @@ func (um *KeycloakUserManager) ListUsers(ctx context.Context, page interface{}, 
 	var all []*models.User
 	var nextPage *PageRequest
 	for {
-		some, next, err := um.ListUserPage(ctx, nextPage)
+		some, next, err := um.listUserPage(ctx, nextPage)
 		if err != nil {
 			return all, nil, err
 		}
@@ -127,7 +147,7 @@ func (um *KeycloakUserManager) ListUsers(ctx context.Context, page interface{}, 
 	}
 }
 
-func (um *KeycloakUserManager) ListUserPage(ctx context.Context, page *PageRequest) ([]*models.User, *PageRequest, error) {
+func (um *KeycloakUserManager) listUserPage(ctx context.Context, page *PageRequest) ([]*models.User, *PageRequest, error) {
 	err := um.connect(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -179,6 +199,11 @@ func (um *KeycloakUserManager) GetUser(ctx context.Context, uid string) (*models
 	return UserToCloudy(u), err
 }
 
+// Placeholder if we want to use attributes defined outside of cloudy-keycloak
+func (um *KeycloakUserManager) GetUserWithAttributes(ctx context.Context, uid string, attrs []string) (*models.User, error) {
+	return um.GetUser(ctx, uid)
+}
+
 // Retrieves a specific user.
 func (um *KeycloakUserManager) GetUserByEmail(ctx context.Context, email string, opts *cloudy.UserOptions) (*models.User, error) {
 	err := um.connect(ctx)
@@ -192,7 +217,7 @@ func (um *KeycloakUserManager) GetUserByEmail(ctx context.Context, email string,
 	if err != nil {
 		return nil, err
 	}
-	if len(found) == 0 {
+	if len((found)) == 0 {
 		return nil, nil
 	}
 	return UserToCloudy(found[0]), nil
@@ -209,7 +234,7 @@ func (um *KeycloakUserManager) NewUser(ctx context.Context, newUser *models.User
 	u := UserToKeycloak(newUser)
 	uid, err := um.client.CreateUser(ctx, um.jwt.AccessToken, um.realm, *u)
 	if uid != "" {
-		newUser.ID = uid
+		newUser.UID = uid
 	}
 	return newUser, err
 }
@@ -265,81 +290,43 @@ func (um *KeycloakUserManager) DeleteUser(ctx context.Context, uid string) error
 
 func UserToCloudy(user *gocloak.User) *models.User {
 	u := &models.User{
-		ID:             str(user.ID, ""),
-		UPN:            str(user.Username, ""),
-		FirstName:      str(user.FirstName, ""),
-		LastName:       str(user.LastName, ""),
-		Email:          str(user.Email, ""),
-		Enabled:        *user.Enabled,
-		AccountType:    first(user.Attributes, "AccountType"),
-		Citizenship:    first(user.Attributes, "Citizenship"),
-		Company:        first(user.Attributes, "Company"),
-		ContractDate:   first(user.Attributes, "ContractDate"),
-		ContractNumber: first(user.Attributes, "ContractNumber"),
-		Department:     first(user.Attributes, "Department"),
-		DisplayName:    first(user.Attributes, "DisplayName"),
-		MobilePhone:    first(user.Attributes, "MobilePhone"),
-		OfficePhone:    first(user.Attributes, "OfficePhone"),
-		Organization:   first(user.Attributes, "Organization"),
-		JobTitle:       first(user.Attributes, "JobTitle"),
-		ProgramRole:    first(user.Attributes, "ProgramRole"),
-		Project:        first(user.Attributes, "Project"),
+		UID:         str(user.ID, ""),
+		Username:    str(user.Username, ""),
+		FirstName:   str(user.FirstName, ""),
+		LastName:    str(user.LastName, ""),
+		Email:       str(user.Email, ""),
+		Enabled:     *user.Enabled,
+		DisplayName: first(user.Attributes, "DisplayName"),
+	}
+
+	u.Attributes = make(map[string]string)
+	for _, attr := range AdditionalAttributes {
+		if first(user.Attributes, attr.Name) != "" {
+			u.Attributes[attr.Name] = first(user.Attributes, attr.Name)
+		}
 	}
 
 	return u
 }
 
 func UserToKeycloak(u *models.User) *gocloak.User {
-	attr := make(map[string][]string)
+	attrs := make(map[string][]string)
 
-	if u.AccountType != "" {
-		attr["AccountType"] = []string{u.AccountType}
-	}
-	if u.Citizenship != "" {
-		attr["Citizenship"] = []string{u.Citizenship}
-	}
-	if u.Company != "" {
-		attr["Company"] = []string{u.Company}
-	}
-	if u.ContractDate != "" {
-		attr["ContractDate"] = []string{u.ContractDate}
-	}
-	if u.ContractNumber != "" {
-		attr["ContractNumber"] = []string{u.ContractNumber}
-	}
-	if u.Department != "" {
-		attr["Department"] = []string{u.Department}
-	}
-	if u.DisplayName != "" {
-		attr["DisplayName"] = []string{u.DisplayName}
-	}
-	if u.MobilePhone != "" {
-		attr["MobilePhone"] = []string{u.MobilePhone}
-	}
-	if u.OfficePhone != "" {
-		attr["OfficePhone"] = []string{u.OfficePhone}
-	}
-	if u.Organization != "" {
-		attr["Organization"] = []string{u.Organization}
-	}
-	if u.JobTitle != "" {
-		attr["JobTitle"] = []string{u.JobTitle}
-	}
-	if u.ProgramRole != "" {
-		attr["ProgramRole"] = []string{u.ProgramRole}
-	}
-	if u.Project != "" {
-		attr["Project"] = []string{u.Project}
+	for _, attr := range AdditionalAttributes {
+		val, ok := u.Attributes[attr.Name]
+		if ok {
+			attrs[attr.Name] = []string{val}
+		}
 	}
 
 	user := &gocloak.User{
-		ID:         &u.ID,
-		Username:   &u.UPN,
+		ID:         &u.UID,
+		Username:   &u.Username,
 		Enabled:    &u.Enabled,
 		FirstName:  &u.FirstName,
 		LastName:   &u.LastName,
 		Email:      &u.Email,
-		Attributes: &attr,
+		Attributes: &attrs,
 	}
 
 	return user

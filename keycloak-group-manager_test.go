@@ -13,7 +13,7 @@ func TestGroupManager(t *testing.T) {
 	env := startTestKeycloak(ctx)
 	gm := NewGroupManagerFromEnv(ctx, env)
 
-	groups, err := gm.ListGroups(ctx)
+	groups, err := gm.ListGroups(ctx, "", nil)
 	assert.NoError(t, err)
 	assert.Empty(t, groups)
 
@@ -25,9 +25,9 @@ func TestGroupManager(t *testing.T) {
 	assert.NotEmpty(t, created.ID)
 	assert.NotEmpty(t, group.ID)
 
-	groups, err = gm.ListGroups(ctx)
+	groups, err = gm.ListGroups(ctx, "", nil)
 	assert.NoError(t, err)
-	assert.Equal(t, len(groups), 1)
+	assert.Equal(t, len(*groups), 1)
 
 	groupId, err := gm.GetGroupId(ctx, group.Name)
 	assert.NoError(t, err)
@@ -49,7 +49,7 @@ func TestGroupManager(t *testing.T) {
 	err = gm.DeleteGroup(ctx, groupId)
 	assert.NoError(t, err)
 
-	groups, err = gm.ListGroups(ctx)
+	groups, err = gm.ListGroups(ctx, "", nil)
 	assert.NoError(t, err)
 	assert.Empty(t, groups)
 
@@ -61,7 +61,7 @@ func TestGroupManagerMembers(t *testing.T) {
 	gm := NewGroupManagerFromEnv(ctx, env)
 	um := NewKeycloakUserManagerFromEnv(ctx, env)
 
-	groups, err := gm.ListGroups(ctx)
+	groups, err := gm.ListGroups(ctx, "", nil)
 	assert.NoError(t, err)
 	assert.Empty(t, groups)
 
@@ -74,15 +74,15 @@ func TestGroupManagerMembers(t *testing.T) {
 	assert.NotEmpty(t, group.ID)
 
 	user, err := um.NewUser(ctx, &models.User{
-		UPN:       "test-group-user",
+		Username:  "test-group-user",
 		FirstName: "Test",
 		LastName:  "group user",
 		Email:     "test-group-user@nowhere.aaa",
 	})
 	assert.NoError(t, err)
-	assert.NotEmpty(t, user.ID)
+	assert.NotEmpty(t, user.UID)
 
-	userGroups, err := gm.GetUserGroups(ctx, user.ID)
+	userGroups, err := gm.GetUserGroups(ctx, user.UID)
 	assert.NoError(t, err)
 	assert.Empty(t, userGroups)
 
@@ -90,25 +90,25 @@ func TestGroupManagerMembers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, members)
 
-	err = gm.AddMembers(ctx, group.ID, []string{user.ID})
+	err = gm.AddMembers(ctx, group.ID, []string{user.UID})
 	assert.NoError(t, err)
 
 	members, err = gm.GetGroupMembers(ctx, group.ID)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, members)
 
-	userGroups, err = gm.GetUserGroups(ctx, user.ID)
+	userGroups, err = gm.GetUserGroups(ctx, user.UID)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userGroups)
 
-	err = gm.RemoveMembers(ctx, group.ID, []string{user.ID})
+	err = gm.RemoveMembers(ctx, group.ID, []string{user.UID})
 	assert.NoError(t, err)
 
 	members, err = gm.GetGroupMembers(ctx, group.ID)
 	assert.NoError(t, err)
 	assert.Empty(t, members)
 
-	userGroups, err = gm.GetUserGroups(ctx, user.ID)
+	userGroups, err = gm.GetUserGroups(ctx, user.UID)
 	assert.NoError(t, err)
 	assert.Empty(t, userGroups)
 
