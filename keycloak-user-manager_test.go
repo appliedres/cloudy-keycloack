@@ -61,7 +61,7 @@ func TestUserManager(t *testing.T) {
 	um := NewKeycloakUserManagerFromEnv(ctx, env)
 
 	created, err := um.NewUser(ctx, &models.User{
-		UPN:       "test.user@arkloud.us",
+		Username:  "test.user@arkloud.us",
 		FirstName: "Test",
 		LastName:  "User",
 		Email:     "test.user@email.arkloud.us",
@@ -71,9 +71,9 @@ func TestUserManager(t *testing.T) {
 		fmt.Println(err)
 		panic(err)
 	}
-	assert.NotEmpty(t, created.ID)
+	assert.NotEmpty(t, created.UID)
 
-	found, err := um.GetUser(ctx, created.ID)
+	found, err := um.GetUser(ctx, created.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, found)
 	assert.EqualValues(t, created, found)
@@ -82,55 +82,58 @@ func TestUserManager(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, foundByEmail)
 
-	err = um.DeleteUser(ctx, created.ID)
+	err = um.DeleteUser(ctx, created.UID)
 	assert.NoError(t, err)
 
-	found2, err := um.GetUser(ctx, created.ID)
+	found2, err := um.GetUser(ctx, created.UID)
 	assert.NoError(t, err)
 	assert.Nil(t, found2)
 
-	createdUsa, err := um.NewUser(ctx, &models.User{
-		UPN:            "test.user-usa@arkloud.us",
-		FirstName:      "Test",
-		LastName:       "User-usa",
-		Email:          "test.user-usa@email.arkloud.us",
-		Citizenship:    "USA",
-		Enabled:        true,
-		AccountType:    "AccountType",
-		Company:        "Company",
-		ContractDate:   time.Now().Format(time.RFC3339),
-		ContractNumber: "1234",
-		Department:     "Department",
-		DisplayName:    "DisplayName",
-		JobTitle:       "JoBTitle",
-		MobilePhone:    "999-999-9999",
-		OfficePhone:    "111-999-9999",
-		ProgramRole:    "ProgramRole",
-		Organization:   "Organization",
-		Project:        "Project",
-	})
+	usr := &models.User{
+		Username:    "test.user-usa@arkloud.us",
+		FirstName:   "Test",
+		LastName:    "User-usa",
+		Email:       "test.user-usa@email.arkloud.us",
+		Enabled:     true,
+		DisplayName: "DisplayName",
+	}
+	usr.Attributes = make(map[string]string)
+	usr.Attributes["JobTitle"] = "JoBTitle"
+	usr.Attributes["MobilePhone"] = "999-999-9999"
+	usr.Attributes["OfficePhone"] = "111-999-9999"
+	usr.Attributes["ProgramRole"] = "ProgramRole"
+	usr.Attributes["Organization"] = "Organization"
+	usr.Attributes["Project"] = "Project"
+	usr.Attributes["AccountType"] = "AccountType"
+	usr.Attributes["Company"] = "Company"
+	usr.Attributes["ContractDate"] = time.Now().Format(time.RFC3339)
+	usr.Attributes["ContractNumber"] = "1234"
+	usr.Attributes["Department"] = "Department"
+	usr.Attributes["Citizenship"] = "USA"
+
+	createdUsa, err := um.NewUser(ctx, usr)
 	assert.NoError(t, err)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-	foundUsa, err := um.GetUser(ctx, createdUsa.ID)
+	foundUsa, err := um.GetUser(ctx, createdUsa.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, foundUsa)
 	assert.EqualValues(t, createdUsa, foundUsa)
 
 	assert.True(t, createdUsa.Enabled)
-	err = um.Disable(ctx, foundUsa.ID)
+	err = um.Disable(ctx, foundUsa.UID)
 	assert.NoError(t, err)
 
-	foundUsaDisabled, err := um.GetUser(ctx, createdUsa.ID)
+	foundUsaDisabled, err := um.GetUser(ctx, createdUsa.UID)
 	assert.NoError(t, err)
 	assert.False(t, foundUsaDisabled.Enabled)
 
-	err = um.Enable(ctx, foundUsa.ID)
+	err = um.Enable(ctx, foundUsa.UID)
 	assert.NoError(t, err)
 
-	foundUsaEnabled, err := um.GetUser(ctx, createdUsa.ID)
+	foundUsaEnabled, err := um.GetUser(ctx, createdUsa.UID)
 	assert.NoError(t, err)
 	assert.True(t, foundUsaEnabled.Enabled)
 
@@ -138,7 +141,7 @@ func TestUserManager(t *testing.T) {
 	err = um.UpdateUser(ctx, createdUsa)
 	assert.NoError(t, err)
 
-	foundUsaUpdated, err := um.GetUser(ctx, createdUsa.ID)
+	foundUsaUpdated, err := um.GetUser(ctx, createdUsa.UID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, foundUsaUpdated, createdUsa)
 
@@ -146,7 +149,7 @@ func TestUserManager(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, exists)
 
-	_, exists, err = um.ForceUserName(ctx, createdUsa.UPN)
+	_, exists, err = um.ForceUserName(ctx, createdUsa.Username)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
@@ -165,7 +168,7 @@ func TestUserManagerBulk(t *testing.T) {
 	// Create 1000 users
 	for i := range 1000 {
 		created, err := um.NewUser(ctx, &models.User{
-			UPN:       fmt.Sprintf("bulk.user-%v@arkloud.us", i),
+			Username:  fmt.Sprintf("bulk.user-%v@arkloud.us", i),
 			FirstName: "Test",
 			LastName:  fmt.Sprintf("User-%v", i),
 			Email:     fmt.Sprintf("test.user-%v@email.arkloud.us", i),
@@ -175,17 +178,17 @@ func TestUserManagerBulk(t *testing.T) {
 			fmt.Println(err)
 			panic(err)
 		}
-		assert.NotEmpty(t, created.ID)
+		assert.NotEmpty(t, created.UID)
 	}
 	elapsed := time.Since(start)
 
 	// Now try to read them all
 	startList := time.Now()
-	all, _, err := um.ListUsers(ctx, nil, nil)
+	all, err := um.ListUsers(ctx, "", nil)
 	elapsedList := time.Since(startList)
 
 	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, len(all), 1000)
+	assert.GreaterOrEqual(t, len(*all), 1000)
 
 	fmt.Printf("Time To Start: %v\n", elapsedContainer)
 	fmt.Printf("Time To Add: %v\n", elapsed)

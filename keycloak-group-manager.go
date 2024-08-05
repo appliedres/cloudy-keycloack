@@ -68,7 +68,7 @@ func (um *KeycloakGroupManager) connect() error {
 }
 
 // List all the groups available
-func (gm *KeycloakGroupManager) ListGroups(ctx context.Context) ([]*models.Group, error) {
+func (gm *KeycloakGroupManager) ListGroups(ctx context.Context, filter string, attrs []string) (*[]models.Group, error) {
 	err := gm.connect()
 	if err != nil {
 		return nil, err
@@ -78,11 +78,11 @@ func (gm *KeycloakGroupManager) ListGroups(ctx context.Context) ([]*models.Group
 	if err != nil {
 		return nil, err
 	}
-	rtn := make([]*models.Group, len(found))
+	rtn := make([]models.Group, len(found))
 	for i, g := range found {
-		rtn[i] = GroupToCloudy(g)
+		rtn[i] = *GroupToCloudy(g)
 	}
-	return rtn, nil
+	return &rtn, nil
 }
 
 // Get a specific group by id
