@@ -409,6 +409,10 @@ func (um *KeycloakUserManager) FindComponent(ctx context.Context, providerId str
 	return nil, nil
 }
 
+func (um *KeycloakUserManager) SetUserPassword(ctx context.Context, userid string, pwd string) error {
+	return um.client.SetPassword(ctx, um.jwt.AccessToken, userid, um.realm, pwd, false)
+}
+
 func (um *KeycloakUserManager) AddUserAttributes(ctx context.Context, attributes []*Attribute) error {
 	component, err := um.FindUserProfileComponent(ctx)
 	if err != nil {
