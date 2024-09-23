@@ -284,6 +284,22 @@ func (um *KeycloakUserManager) DeleteUser(ctx context.Context, uid string) error
 		return err
 	}
 
+	// trying to fix delete user
+	// token, err := um.client.LoginAdmin(ctx, "adminuser", "admin", "master")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// role, err := um.client.GetRealmRole(ctx, token.AccessToken, "master", "realm-admin")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = um.client.AddRealmRoleToUser(ctx, token.AccessToken, "master", "admin", []gocloak.Role{*role})
+	// if err != nil {
+	// 	return err
+	// }
+
 	err = um.client.DeleteUser(ctx, um.jwt.AccessToken, um.realm, uid)
 	return err
 }
@@ -409,8 +425,8 @@ func (um *KeycloakUserManager) FindComponent(ctx context.Context, providerId str
 	return nil, nil
 }
 
-func (um *KeycloakUserManager) SetUserPassword(ctx context.Context, userid string, pwd string) error {
-	return um.client.SetPassword(ctx, um.jwt.AccessToken, userid, um.realm, pwd, false)
+func (um *KeycloakUserManager) SetUserPassword(ctx context.Context, userid string, pwd string, mustChange bool) error {
+	return um.client.SetPassword(ctx, um.jwt.AccessToken, userid, um.realm, pwd, mustChange)
 }
 
 func (um *KeycloakUserManager) AddUserAttributes(ctx context.Context, attributes []*Attribute) error {
