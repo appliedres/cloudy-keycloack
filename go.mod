@@ -4,7 +4,7 @@ go 1.22.1
 
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0
-	github.com/appliedres/cloudy v0.0.33
+	github.com/appliedres/cloudy v0.0.41
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.31.0
 )

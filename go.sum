@@ -12,8 +12,8 @@ github.com/Microsoft/hcsshim v0.11.4 h1:68vKo2VN8DE9AdN4tnkWnmdhqdbpUFM8OF3Airm7
 github.com/Microsoft/hcsshim v0.11.4/go.mod h1:smjE4dvqPX9Zldna+t5FG3rnoHhaB7QYxPRqGcpAD9w=
 github.com/Nerzal/gocloak/v13 v13.9.0 h1:YWsJsdM5b0yhM2Ba3MLydiOlujkBry4TtdzfIzSVZhw=
 github.com/Nerzal/gocloak/v13 v13.9.0/go.mod h1:YYuDcXZ7K2zKECyVP7pPqjKxx2AzYSpKDj8d6GuyM10=
-github.com/appliedres/cloudy v0.0.33 h1:/TNGcERj2qnnxgzdGeuu01hQUukrRN45pLgt4AEpBIk=
-github.com/appliedres/cloudy v0.0.33/go.mod h1:FB4U1ffrAEo43oWZFyotmixhm+uvnAWj2/85h2iFBaw=
+github.com/appliedres/cloudy v0.0.41 h1:uN0Axhk/CEdqyUyVzq/h61it/bH0vTP+Abb93Z9J3QY=
+github.com/appliedres/cloudy v0.0.41/go.mod h1:FB4U1ffrAEo43oWZFyotmixhm+uvnAWj2/85h2iFBaw=
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3dyBCFEj5IhUbnKptjxatkF07cF2ak3yi77so=
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/cenkalti/backoff/v4 v4.2.1 h1:y4OZtCnogmCPw98Zjyt5a6+QwPLGkiQsYW5oUqylYbM=
